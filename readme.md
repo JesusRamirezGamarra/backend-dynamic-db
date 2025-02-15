@@ -553,7 +553,14 @@ sudo apt update
 sudo apt install -y golang-go
 ```
 
-me doy cuenta que no es necesario activar la funciaonlidad de --driver que en miniube define cómo se ejecutará Kubernetes en tu máquina. Básicamente, indica qué backend de virtualización o contenedores usará para ejecutar el clúster de Kubernetes.
+Como resultado al intentar iniciar nuevamente 
+```
+ minikube stop
+minikube start
+```
+
+![alt text](image-20.png)
+
 
 > [!NOTE]
 > --driver define cómo ejecutará Kubernetes en Minikube.
@@ -568,6 +575,65 @@ minikube start
 ```
 ![alt text](image-10.png)
 
+```
+cd ~/codigo/jesusramirez/cri-dockerd
+nano go.mod
+```
+Cambien la version go 1.23.3 por go 1.23
+Descarge la version espefica que se indicaba
+
+```
+sudo add-apt-repository ppa:longsleep/golang-backports
+sudo apt-get update
+sudo apt-get install golang-go
+```
+
+Compilar cri-dockerd
+```
+cd ~/codigo/jesusramirez/cri-dockerd
+go build -o bin/cri-dockerd
+```
+
+Instalar cri-dockerd
+```
+sudo cp bin/cri-dockerd /usr/bin/
+sudo chmod +x /usr/bin/cri-dockerd
+```
+
+Configurar y arrancar cri-dockerd
+```
+sudo cp -a packaging/systemd/* /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable cri-dockerd
+sudo systemctl start cri-dockerd
+```
+Reiniciar Minikube
+```
+minikube stop
+minikube start
+```
+![alt text](image-21.png)
+
+Instalo los plugins segun lo recomendado por Digital Ocean para containers networking-plugins
+```
+sudo mkdir -p /opt/cni/bin
+curl -L https://github.com/containernetworking/plugins/releases/latest/download/cni-plugins-linux-amd64-v1.3.0.tgz | sudo tar -C /opt/cni/bin -xz
+```
+
+verifico
+```
+ls -l /opt/cni/bin/
+```
+
+intento iniciar Minikube nuevamente:
+```
+minikube start --driver=none
+minikube status
+kubectl cluster-info
+kubectl get nodes
+```
+
+![alt text](image-22.png)
 
 
 ### 2. 📌Agrego estructura de directorios para .github/workflows (actions) y 
