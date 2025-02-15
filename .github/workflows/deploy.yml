@@ -39,6 +39,7 @@ jobs:
           send "${{ secrets.SSH_PASSPHRASE }}\r"
           expect "#"
           send "mkdir -p /root/codigo/jesusramirez/backend-dynamic-db/k8s\r"
+          send "mkdir -p /root/codigo/jesusramirez/docker\r"
           send "exit\r"
           expect eof
           EOF
@@ -47,6 +48,15 @@ jobs:
         run: |
           expect <<EOF
           spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./k8s/ root@204.48.22.13:/root/codigo/jesusramirez/backend-dynamic-db/k8s
+          expect "Enter passphrase for key"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect eof
+          EOF
+
+      - name: Sincronizar nuevo `docker-compose.yml` con el servidor
+        run: |
+          expect <<EOF
+          spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./docker-compose.yml root@204.48.22.13:/root/codigo/jesusramirez/docker/docker-compose.yml
           expect "Enter passphrase for key"
           send "${{ secrets.SSH_PASSPHRASE }}\r"
           expect eof
@@ -78,7 +88,7 @@ jobs:
           expect "Enter passphrase for key"
           send "${{ secrets.SSH_PASSPHRASE }}\r"
           expect "#"
-          send "kubectl rollout status deployment/backend-api -n backend-namespace\r"
+          send "kubectl rollout status deployment/backend-api-jesusramirez -n backend-namespace\r"
           send "exit\r"
           expect eof
           EOF
