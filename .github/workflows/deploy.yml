@@ -59,7 +59,7 @@ jobs:
           expect "Enter passphrase for key"
           send "${{ secrets.SSH_PASSPHRASE }}\r"
           expect "#"
-          send "set -e\r"  # <--- DETIENE EL SCRIPT SI HAY UN ERROR
+          send "set -e\r"
           send "cd /root/codigo/jesusramirez/backend-dynamic-db/k8s\r"
           send "kubectl apply -f namespace.yaml\r"
           send "kubectl apply -f configmap.yaml\r"
@@ -83,11 +83,4 @@ jobs:
           expect eof
           EOF
 
-      - name: Verificar estado de los pods en Kubernetes usando `expect`
-        run: |
-          expect <<EOF
-          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13 "kubectl get pods -n backend-namespace"
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect eof
-          EOF
+      - name
