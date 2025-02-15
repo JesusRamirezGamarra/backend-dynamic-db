@@ -731,3 +731,94 @@ git add .github/workflows/deploy.yml
 git commit -m "UPDATE  --- TEST k8s en GitHub Actions"
 git push origin develop
 ```
+
+Visualizo el error : el cual me indica la naturaleza del error : 
+![alt text](image-15.png)
+
+Como este error esta realcionado con el Passphase tengo como opcion generar nuevamente un rsa privado sin considerar un passphrase o enviar este valor en mi deploy.yml .
+Agrego SSH_PRIVATE_KEY
+
+![alt text](image-16.png)
+
+Modifico el archivo deploy.yml para aregar el uso de expect y ademas usar el secret : SSH_PRIVATE_KEY para pasar el valor.
+
+```
+name: Deploy Backend to Kubernetes
+
+on:
+  push:
+    branches:
+      - develop  # 🚀 Se ejecutará cuando haya cambios en la rama "develop"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar `expect`
+        run: sudo apt-get update && sudo apt-get install -y expect
+
+      - name: Configurar SSH y conectar al servidor con `expect`
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H -t rsa 204.48.22.13 >> ~/.ssh/known_hosts
+
+      - name: Probar conexión SSH con `expect`
+        run: |
+          expect <<EOF
+          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13 "echo Conexión exitosa!"
+          expect "Enter passphrase for key"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect eof
+          EOF
+
+      - name: Sincronizar archivos Kubernetes con el servidor usando `expect`
+        run: |
+          expect <<EOF
+          spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./k8s/ root@204.48.22.13:/root/codigo/jesusramirez/backend-dynamic-db/k8s
+          expect "Enter passphrase for key"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect eof
+          EOF
+
+      - name: Conectar al servidor y desplegar en Kubernetes con `expect`
+        run: |
+          expect <<EOF
+          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13
+          expect "Enter passphrase for key"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect "#"
+          send "cd /root/codigo/jesusramirez/backend-dynamic-db/k8s\r"
+          send "kubectl apply -f namespace.yaml\r"
+          send "kubectl apply -f configmap.yaml\r"
+          send "kubectl apply -f secret.yaml\r"
+          send "kubectl apply -f deployment.yaml\r"
+          send "kubectl apply -f service.yaml\r"
+          send "kubectl apply -f cronjob-backup.yaml\r"
+          send "exit\r"
+          expect eof
+          EOF
+
+      - name: Verificar estado de los pods en Kubernetes usando `expect`
+        run: |
+          expect <<EOF
+          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13 "kubectl get pods -n backend-namespace"
+          expect "Enter passphrase for key"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect eof
+          EOF
+```
+
+
+
+
+
+
+
+
+
+
