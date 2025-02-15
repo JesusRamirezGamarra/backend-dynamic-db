@@ -905,3 +905,6 @@ ufw status
 ![alt text](image-19.png)
 
 
+al pensar sobre los nombres que brinde a mis servicios y demas componente decido agregar de sufijo "-jesusramirez"con la finalidad de no tener problemas.
+
+
