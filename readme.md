@@ -813,12 +813,29 @@ jobs:
           EOF
 ```
 
+ante el fallo recurrente, pienso en verificar los key que estan configurados como con permiso , al buscar encuentro que al ejecutar :
+```
+cat ~/.ssh/authorized_keys
+```
+comprendiendo que podria agregar la key generada previamente reflexiono y comprando que debo autoriarme y para ese fin ya estaba definida mi acceso por lo que actualizo mi key privado en el secrets de github y re ejecuto el proceso generando un nuevo push a la rama develop
 
+![alt text](image-17.png)
 
+Intento verificar el comportamiento de mi deploy, para lo cual primero verifico puertos :
+```
+ufw status
+ufw allow 8080
+```
 
+![alt text](image-18.png)
 
+aunque vi el refresco del puerto que agrege igual decido aplicar un reloaded para re verificar que la apertura del puerto 8080 no tenga problemas.
 
+```
+ufw reload
+ufw status
+```
 
-
+![alt text](image-19.png)
 
 

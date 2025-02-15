@@ -31,6 +31,18 @@ jobs:
           expect eof
           EOF
 
+      - name: Crear directorios en el servidor si no existen
+        run: |
+          expect <<EOF
+          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13
+          expect "Enter passphrase for key"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect "#"
+          send "mkdir -p /root/codigo/jesusramirez/backend-dynamic-db/k8s\r"
+          send "exit\r"
+          expect eof
+          EOF
+
       - name: Sincronizar archivos Kubernetes con el servidor usando `expect`
         run: |
           expect <<EOF
@@ -40,13 +52,14 @@ jobs:
           expect eof
           EOF
 
-      - name: Conectar al servidor y desplegar en Kubernetes con `expect`
+      - name: Desplegar en Kubernetes en Digital Ocean con `expect`
         run: |
           expect <<EOF
           spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13
           expect "Enter passphrase for key"
           send "${{ secrets.SSH_PASSPHRASE }}\r"
           expect "#"
+          send "set -e\r"  # <--- DETIENE EL SCRIPT SI HAY UN ERROR
           send "cd /root/codigo/jesusramirez/backend-dynamic-db/k8s\r"
           send "kubectl apply -f namespace.yaml\r"
           send "kubectl apply -f configmap.yaml\r"
@@ -54,6 +67,18 @@ jobs:
           send "kubectl apply -f deployment.yaml\r"
           send "kubectl apply -f service.yaml\r"
           send "kubectl apply -f cronjob-backup.yaml\r"
+          send "exit\r"
+          expect eof
+          EOF
+
+      - name: Esperar a que los pods estén listos
+        run: |
+          expect <<EOF
+          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13
+          expect "Enter passphrase for key"
+          send "${{ secrets.SSH_PASSPHRASE }}\r"
+          expect "#"
+          send "kubectl rollout status deployment/backend-api -n backend-namespace\r"
           send "exit\r"
           expect eof
           EOF
