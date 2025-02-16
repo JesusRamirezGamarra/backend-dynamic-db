@@ -39,27 +39,22 @@ jobs:
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      # 6. Verify Kubernetes context
-      - name: Verify current Kubernetes context
+      # 6. Create Kubernetes Secrets from GitHub Actions secrets
+      - name: Create Kubernetes Secrets from GitHub Actions
         run: |
-          kubectl config current-context
-
-      - name: List Kubernetes contexts
-        run: |
-          kubectl config get-contexts
-
-
-      # 7. Verify Kubernetes namespaces
-      - name: Check namespaces
-        run: |
-          kubectl get namespaces
-
-      # 8. Deploy all Kubernetes resources in a single apply command
+          kubectl create secret generic backend-secrets-jesusramirez \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --from-literal=DATABASE_USER=${{ secrets.DATABASE_USER }} \
+            --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
+            --namespace backend-namespace-jesusramirez
+          
+      # 7. Deploy all Kubernetes resources in a single apply command
       - name: Deploy all Kubernetes resources
         run: |
           kubectl apply -f k8s/deploy-sk8.yaml
 
-      # 9. Verify deployment in the correct namespace
+      # 8. Verify deployment
       - name: Verify deployment
         run: |
           kubectl get pods -n backend-namespace-jesusramirez
