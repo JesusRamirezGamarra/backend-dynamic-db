@@ -39,9 +39,14 @@ jobs:
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      # 6. Create Kubernetes Secrets from GitHub Actions secrets
+      # 6. Delete existing Kubernetes Secrets if they exist and create new ones
       - name: Create Kubernetes Secrets from GitHub Actions
         run: |
+          # Eliminar el Secret existente de Docker si ya existe
+          kubectl delete secret regcred -n backend-namespace-jesusramirez || echo "Secret regcred does not exist"
+          kubectl delete secret backend-secrets-jesusramirez -n backend-namespace-jesusramirez || echo "Secret backend-secrets-jesusramirez does not exist"
+          
+          # Crear nuevos Secrets con las credenciales de GitHub Actions
           kubectl create secret docker-registry regcred \
             --docker-server=docker.io \
             --docker-username=${{ secrets.DOCKER_USERNAME }} \
