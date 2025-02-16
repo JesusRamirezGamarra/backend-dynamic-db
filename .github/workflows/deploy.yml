@@ -1,103 +1,54 @@
-name: Deploy Backend to Kubernetes
+name: Deploy to Kubernetes
 
 on:
   push:
     branches:
-      - develop  # 🚀 Se ejecutará cuando haya cambios en la rama "develop"
+      - develop  # Esto se ejecutará cuando haya un push en la rama develop
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
+      - name: Checkout the repository
+        uses: actions/checkout@v3
 
-      - name: Instalar `expect`
-        run: sudo apt-get update && sudo apt-get install -y expect
+      # 1. Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Configurar SSH y conectar al servidor con `expect`
+      # 2. Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 3. Build and push Docker image
+      - name: Build and push Docker image
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H -t rsa 204.48.22.13 >> ~/.ssh/known_hosts
+          docker build -t jesusramirezgamarra/backend-dynamic-db:latest .
+          docker push jesusramirezgamarra/backend-dynamic-db:latest
 
-      - name: Probar conexión SSH con `expect`
+      # 4. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: Set up Kubernetes using kubeconfig
         run: |
-          expect <<EOF
-          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13 "echo Conexión exitosa!"
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect eof
-          EOF
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      - name: Crear directorios en el servidor si no existen
+      # 5. Deploy to Kubernetes
+      - name: Deploy to Kubernetes (Minikube or DigitalOcean)
         run: |
-          expect <<EOF
-          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect "#"
-          send "mkdir -p /root/codigo/jesusramirez/backend-dynamic-db/k8s\r"
-          send "mkdir -p /root/codigo/jesusramirez/docker\r"
-          send "exit\r"
-          expect eof
-          EOF
+          kubectl apply -f namespace.yaml
+          kubectl apply -f secret.yaml
+          kubectl apply -f configmap.yaml
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
+          kubectl apply -f cronjob.yaml
 
-      - name: Sincronizar archivos Kubernetes con el servidor usando `expect`
+      # 6. Verify deployment
+      - name: Verify deployment
         run: |
-          expect <<EOF
-          spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./k8s/ root@204.48.22.13:/root/codigo/jesusramirez/backend-dynamic-db/k8s
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect eof
-          EOF
-
-      - name: Sincronizar nuevo `docker-compose.yml` con el servidor
-        run: |
-          expect <<EOF
-          spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./docker-compose.yml root@204.48.22.13:/root/codigo/jesusramirez/docker/docker-compose.yml
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect eof
-          EOF
-
-      - name: Desplegar en Kubernetes en Digital Ocean con `expect`
-        run: |
-          expect <<EOF
-          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect "#"
-          send "set -e\r"
-          send "cd /root/codigo/jesusramirez/backend-dynamic-db/k8s\r"
-          send "kubectl apply -f namespace.yaml\r"
-          send "kubectl apply -f configmap.yaml -n backend-namespace-jesusramirez\r"
-          send "kubectl apply -f secret.yaml -n backend-namespace-jesusramirez\r"
-          send "kubectl apply -f deployment.yaml -n backend-namespace-jesusramirez\r"
-          send "kubectl apply -f service.yaml -n backend-namespace-jesusramirez\r"
-          send "kubectl apply -f cronjob-backup.yaml -n backend-namespace-jesusramirez\r"
-          send "exit\r"
-          expect eof
-          EOF
-
-      - name: Esperar a que los pods estén listos
-        run: |
-          expect <<EOF
-          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect "#"
-          send "kubectl rollout status deployment/backend-api-jesusramirez -n backend-namespace-jesusramirez\r"
-          send "exit\r"
-          expect eof
-          EOF
-
-      - name: Verificar estado de los pods en Kubernetes usando `expect`
-        run: |
-          expect <<EOF
-          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@204.48.22.13 "kubectl get pods -n backend-namespace-jesusramirez"
-          expect "Enter passphrase for key"
-          send "${{ secrets.SSH_PASSPHRASE }}\r"
-          expect eof
-          EOF
+          kubectl get pods
+          kubectl get svc

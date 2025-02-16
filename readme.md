@@ -636,7 +636,7 @@ kubectl get nodes
 ![alt text](image-22.png)
 
 
-### 2. 📌Agrego estructura de directorios para .github/workflows (actions) y 
+### 2. 📌Agrego estructura de directorios para .github/workflows (actions) 
 ```
 📁 backend-dynamic-db
 │   ├── .github/
@@ -878,6 +878,128 @@ jobs:
           expect eof
           EOF
 ```
+
+
+### 3. 📌Agrego contenido para los archivos .yml creados en el directorio k8s 
+tras verificar que la configuracion simple funciona con archivos vacios procedo a configurarlos 
+
+```
+├───k8s
+│       configmap.yaml
+│       cronjob-backup.yaml
+│       deployment.yaml
+│       namespace.yaml
+│       secret.yaml
+│       service.yaml
+│
+```
+
+a) comienzo por el namespace.yaml , en esa instancia me doy cuenta que es convenente tenerun sufijo para los servicios que defina pauta que tomare en cuenta para actualizar todo servicio definido .
+```
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backend-namespace-jesusramirez
+```
+b) configmap.yaml
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config-jesusramirez
+  namespace: backend-namespace-jesusramirez
+data:
+  DATABASE_HOST: "mysql-db"
+  DATABASE_PORT: "3306"
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+```
+c) secret.yaml
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets-jesusramirez
+  namespace: backend-namespace-jesusramirez
+type: Opaque
+data:
+  DATABASE_USER: bXl1c2Vy  # `echo -n 'myuser' | base64`
+  DATABASE_PASSWORD: bXlwYXNzd29yZA==  # `echo -n 'mypassword' | base64`
+  AWS_ACCESS_KEY_ID: YWNjZXNzX2tleQ==  # `echo -n 'access_key' | base64`
+  AWS_SECRET_ACCESS_KEY: c2VjcmV0X2tleQ==  # `echo -n 'secret_key' | base64`
+
+```
+d) service.yaml
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service-jesusramirez
+  namespace: backend-namespace-jesusramirez
+spec:
+  selector:
+    app: backend-api-jesusramirez
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
+
+```
+e ) deployment.yaml
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-api-jesusramirez
+  namespace: backend-namespace-jesusramirez
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-api-jesusramirez
+  template:
+    metadata:
+      labels:
+        app: backend-api-jesusramirez
+    spec:
+      containers:
+        - name: backend-api-jesusramirez
+          image: jesusramirezgamarra/backend-api:latest  # Reemplaza con tu imagen de Docker
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: backend-config-jesusramirez
+            - secretRef:
+                name: backend-secrets-jesusramirez
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service-jesusramirez
+  namespace: backend-namespace-jesusramirez
+spec:
+  selector:
+    app: backend-api-jesusramirez
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+```
+
+
+
+
+
 
 ante el fallo recurrente, pienso en verificar los key que estan configurados como con permiso , al buscar encuentro que al ejecutar :
 ```
