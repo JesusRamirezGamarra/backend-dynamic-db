@@ -6,41 +6,52 @@ on:
       - develop  # Esto se ejecutará cuando haya un push en la rama develop
 
 jobs:
-  deploy-k8:
+  dbuild-backend:
     runs-on: ubuntu-latest
 
     steps:
       # 1. Checkout the repository
-      - name: Checkout the repository
+      - name: 1) Checkout the repository
         uses: actions/checkout@v3
 
       # 2. Set up Docker Buildx
-      - name: Set up Docker Buildx
+      - name: 2) Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
       # 3. Log in to Docker Hub
-      - name: Log in to Docker Hub
+      - name: 3) Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       # 4. Build and push Docker image
-      - name: Build and push Docker image
+      - name: 4) Build and push Docker image
         run: |
           docker build -t jesusramirezgamarra/backend-dynamic-db:latest .
           docker push jesusramirezgamarra/backend-dynamic-db:latest
 
-      # 5. Set up Kubernetes (use base64 encoded kubeconfig)
-      - name: Set up Kubernetes using kubeconfig
+  deploy-k8:
+    needs: build-backend
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      # 6. Delete existing Kubernetes Secrets if they exist and create new ones
-      - name: Create Kubernetes Secrets from GitHub Actions
+      # 2. Crear el namespace si no existe
+      - name: 2) Ensure Namespace Exists
+        run: |
+          kubectl create namespace backend-namespace-jesusramirez || echo "Namespace already exists"
+    
+
+      # 3. Delete existing Kubernetes Secrets if they exist and create new ones
+      - name: 3) Create Kubernetes Secrets from GitHub Actions
         run: |
           # Eliminar el Secret existente de Docker si ya existe
           kubectl delete secret regcred -n backend-namespace-jesusramirez || echo "Secret regcred does not exist"
@@ -61,13 +72,13 @@ jobs:
             --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
             --namespace backend-namespace-jesusramirez
 
-      # 7. Deploy all Kubernetes resources in a single apply command
-      - name: Deploy all Kubernetes resources
+      # 4. Deploy all Kubernetes resources in a single apply command
+      - name: 4) Deploy all Kubernetes resources
         run: |
           kubectl apply -f k8s/deploy-sk8.yaml
 
-      # 8. Verify deployment
-      - name: Verify deployment
+      # 5. Verify deployment
+      - name: 5) Verify deployment
         run: |
           kubectl get pods -n backend-namespace-jesusramirez
           kubectl get svc -n backend-namespace-jesusramirez
