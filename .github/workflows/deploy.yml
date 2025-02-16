@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the repository again for the deploy job
+      # 0. Checkout the repository again for the deploy job
       - name: 0) Checkout the repository
         uses: actions/checkout@v3
 
@@ -84,13 +84,42 @@ jobs:
           echo "Listing the files in the k8s directory:"
           ls -al $GITHUB_WORKSPACE/k8s  # Listar los archivos en la carpeta k8s
 
-      # 4. Deploy all Kubernetes resources in a single apply command
-      - name: 4) Deploy all Kubernetes resources
+
+
+      # 5. List and describe ConfigMaps
+      - name: 5) List ConfigMaps
+        run: |
+          kubectl get configmaps -n backend-namespace-jesusramirez
+
+      - name: 6) Describe ConfigMaps
+        run: |
+          for cm in $(kubectl get configmaps -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
+            kubectl describe configmap $cm -n backend-namespace-jesusramirez;
+          done
+
+      # 7. List and describe Secrets
+      - name: 7) List Secrets
+        run: |
+          kubectl get secrets -n backend-namespace-jesusramirez
+
+      - name: 8) Describe Secrets
+        run: |
+          for secret in $(kubectl get secrets -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
+            kubectl describe secret $secret -n backend-namespace-jesusramirez;
+          done
+
+
+
+
+
+
+      # A. Deploy all Kubernetes resources in a single apply command
+      - name: A) Deploy all Kubernetes resources
         run: |
           kubectl apply -f k8s/deploy-sk8.yaml
 
-      # 5. Verify deployment
-      - name: 5) Verify deployment
+      # B. Verify deployment
+      - name: B) Verify deployment
         run: |
           kubectl get pods -n backend-namespace-jesusramirez
           kubectl get svc -n backend-namespace-jesusramirez
