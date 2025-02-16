@@ -42,7 +42,7 @@ jobs:
       # 6. Deploy all Kubernetes resources in a single apply command
       - name: Deploy all Kubernetes resources
         run: |
-          kubectl apply -f deploy-sk8.yaml
+          kubectl apply -f k8s/deploy-sk8.yaml
 
       # 7. Verify deployment
       - name: Verify deployment
