@@ -136,7 +136,12 @@ jobs:
       # 2. Apply ConfigMap with the init script
       - name: Apply ConfigMap
         run: |
-          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml --validate=false
+          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml 
+
+      - name: Wait for ConfigMap to be available
+        run: |
+          kubectl wait --for=condition=available --timeout=60s configmap/mysql-init-script -n backend-namespace-jesusramirez
+
 
   deploy-k8-FINAL:
     needs: data-Charged
