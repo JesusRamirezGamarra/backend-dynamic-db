@@ -145,7 +145,7 @@ jobs:
       # 3. Apply ConfigMap with the init script
       - name: 3) Apply ConfigMap
         run: |
-          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
+          kubectl apply -f k8s/BD_INIT/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
           kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
 
       # 4. Wait for ConfigMap to be available (retry logic with sleep)
@@ -180,7 +180,7 @@ jobs:
 
       - name: Apply ConfigMap
         run: |
-          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
+          kubectl apply -f k8s/BD_INIT/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
           kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
 
       # A. Deploy all Kubernetes resources in a single apply command
