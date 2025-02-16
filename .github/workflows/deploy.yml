@@ -30,11 +30,11 @@ jobs:
           docker build -t jesusramirezgamarra/backend-dynamic-db:latest .
           docker push jesusramirezgamarra/backend-dynamic-db:latest
 
-  deploy-k8:
-    needs: build-backend
-    runs-on: ubuntu-latest
+  # deploy-k8:
+  #   needs: build-backend
+  #   runs-on: ubuntu-latest
 
-    steps:
+  #   steps:
       # 1. Set up Kubernetes (use base64 encoded kubeconfig)
       - name: Set up Kubernetes using kubeconfig
         run: |
