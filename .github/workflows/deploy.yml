@@ -108,13 +108,6 @@ jobs:
             kubectl describe secret $secret -n backend-namespace-jesusramirez;
           done
 
-
-
-
-
-
-
-
   data-Charged:
     needs: deploy-k8-INIT
     runs-on: ubuntu-latest   
@@ -129,16 +122,15 @@ jobs:
         run: |
           kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml
 
-
-  deploy-k8-FINAL-:
-    needs: deploy-k8
+  deploy-k8-FINAL:
+    needs: data-Charged
     runs-on: ubuntu-latest                        
 
     steps:
       # 0. Checkout the repository again for the deploy job
       - name: 0) Checkout the repository
         uses: actions/checkout@v3
-        
+
       # A. Deploy all Kubernetes resources in a single apply command
       - name: A) Deploy all Kubernetes resources
         run: |
