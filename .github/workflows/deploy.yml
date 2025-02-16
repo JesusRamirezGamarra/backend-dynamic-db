@@ -117,7 +117,12 @@ jobs:
       - name: 0) Checkout the repository
         uses: actions/checkout@v3    
 
-      # 1. Apply ConfigMap with the init script
+      # 1. Verify connection to the cluster
+      - name: Verify connection to the cluster
+        run: |
+          kubectl cluster-info
+
+      # 2. Apply ConfigMap with the init script
       - name: Apply ConfigMap
         run: |
           kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml --validate=false
