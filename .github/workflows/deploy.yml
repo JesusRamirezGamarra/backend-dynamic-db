@@ -31,7 +31,7 @@ jobs:
           docker build -t jesusramirezgamarra/backend-dynamic-db:latest .
           docker push jesusramirezgamarra/backend-dynamic-db:latest
 
-  deploy-k8:
+  deploy-k8-INIT:
     needs: build-backend
     runs-on: ubuntu-latest
 
@@ -113,6 +113,32 @@ jobs:
 
 
 
+
+
+  data-Charged:
+    needs: deploy-k8-INIT
+    runs-on: ubuntu-latest   
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3    
+
+      # 1. Apply ConfigMap with the init script
+      - name: Apply ConfigMap
+        run: |
+          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml
+
+
+  deploy-k8-FINAL-:
+    needs: deploy-k8
+    runs-on: ubuntu-latest                        
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3
+        
       # A. Deploy all Kubernetes resources in a single apply command
       - name: A) Deploy all Kubernetes resources
         run: |
@@ -122,4 +148,4 @@ jobs:
       - name: B) Verify deployment
         run: |
           kubectl get pods -n backend-namespace-jesusramirez
-          kubectl get svc -n backend-namespace-jesusramirez
+          kubectl get svc -n backend-namespace-jesusramirez    
