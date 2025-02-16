@@ -6,7 +6,7 @@ on:
       - develop  # Esto se ejecutará cuando haya un push en la rama develop
 
 jobs:
-  dbuild-backend:
+  build-backend:
     runs-on: ubuntu-latest
 
     steps:
