@@ -44,6 +44,11 @@ jobs:
         run: |
           kubectl config current-context
 
+      - name: List Kubernetes contexts
+        run: |
+          kubectl config get-contexts
+
+
       # 7. Verify Kubernetes namespaces
       - name: Check namespaces
         run: |
