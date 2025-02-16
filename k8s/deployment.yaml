@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend-api-jesusramirez
-          image: jesusramirezgamarra/backend-api:latest  # Reemplaza con tu imagen de Docker
+          image: jesusramirezgamarra/backend-dynamic-db:latest
           ports:
             - containerPort: 3000
           envFrom:
