@@ -120,6 +120,14 @@ jobs:
       - name: 0) Checkout the repository
         uses: actions/checkout@v3    
 
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
+
       # 1. Verify connection to the cluster
       - name: Verify connection to the cluster
         run: |
@@ -138,6 +146,14 @@ jobs:
       # 0. Checkout the repository again for the deploy job
       - name: 0) Checkout the repository
         uses: actions/checkout@v3
+
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
       # A. Deploy all Kubernetes resources in a single apply command
       - name: A) Deploy all Kubernetes resources
