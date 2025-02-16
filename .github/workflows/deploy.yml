@@ -36,6 +36,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3
+
       # 1. Set up Kubernetes (use base64 encoded kubeconfig)
       - name: 1) Set up Kubernetes using kubeconfig
         run: |
