@@ -41,12 +41,12 @@ jobs:
       # 5. Deploy to Kubernetes
       - name: Deploy to Kubernetes (Minikube or DigitalOcean)
         run: |
-          kubectl apply -f namespace.yaml
-          kubectl apply -f secret.yaml
-          kubectl apply -f configmap.yaml
-          kubectl apply -f deployment.yaml
-          kubectl apply -f service.yaml
-          kubectl apply -f cronjob.yaml
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/secret.yaml
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/cronjob.yaml
 
       # 6. Verify deployment
       - name: Verify deployment
