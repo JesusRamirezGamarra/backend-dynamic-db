@@ -39,13 +39,18 @@ jobs:
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      # 6. Deploy all Kubernetes resources in a single apply command
+      # 6. Verify Kubernetes namespaces before deploying
+      - name: Check namespaces
+        run: |
+          kubectl get namespaces
+
+      # 7. Deploy all Kubernetes resources in a single apply command
       - name: Deploy all Kubernetes resources
         run: |
           kubectl apply -f k8s/deploy-sk8.yaml
 
-      # 7. Verify deployment
+      # 8. Verify deployment in the correct namespace
       - name: Verify deployment
         run: |
-          kubectl get pods
-          kubectl get svc
+          kubectl get pods -n backend-namespace-jesusramirez
+          kubectl get svc -n backend-namespace-jesusramirez
