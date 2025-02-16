@@ -178,6 +178,11 @@ jobs:
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
+      - name: Apply ConfigMap
+        run: |
+          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
+          kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
+
       # A. Deploy all Kubernetes resources in a single apply command
       - name: A) Deploy all Kubernetes resources
         run: |
