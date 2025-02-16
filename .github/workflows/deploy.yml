@@ -47,7 +47,9 @@ jobs:
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             --from-literal=DATABASE_USER=${{ secrets.DATABASE_USER }} \
             --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
-            --namespace backend-namespace-jesusramirez
+            --namespace backend-namespace-jesusramirez \
+            --dry-run=client -o yaml | kubectl apply -f -
+
           
       # 7. Deploy all Kubernetes resources in a single apply command
       - name: Deploy all Kubernetes resources
