@@ -64,4 +64,3 @@ jobs:
         run: |
           kubectl get pods -n backend-namespace-jesusramirez
           kubectl get svc -n backend-namespace-jesusramirez
-
