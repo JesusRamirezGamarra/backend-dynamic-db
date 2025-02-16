@@ -72,18 +72,18 @@ jobs:
             --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
             --namespace backend-namespace-jesusramirez
 
-      - name: List files in the repository
+      # 4. List files in the repository for debugging
+      - name: 4) List files in the repository
         run: |
           echo "Listing the files in the repository:"
-          ls -al $GITHUB_WORKSPACE
+          ls -al $GITHUB_WORKSPACE  # Listar todos los archivos en el repositorio
           echo "Listing the files in the k8s directory:"
-          ls -al $GITHUB_WORKSPACE/k8s
-
+          ls -al $GITHUB_WORKSPACE/k8s  # Listar los archivos en la carpeta k8s
 
       # 4. Deploy all Kubernetes resources in a single apply command
       - name: 4) Deploy all Kubernetes resources
         run: |
-          kubectl apply -f ./k8s/deploy-sk8.yaml
+          kubectl apply -f k8s/deploy-sk8.yaml
 
       # 5. Verify deployment
       - name: 5) Verify deployment
