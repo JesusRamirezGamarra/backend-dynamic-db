@@ -6,7 +6,7 @@ on:
       - develop  # Esto se ejecutará cuando haya un push en la rama develop
 
 jobs:
-  build-and-deploy:
+  build-backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +30,12 @@ jobs:
           docker build -t jesusramirezgamarra/backend-dynamic-db:latest .
           docker push jesusramirezgamarra/backend-dynamic-db:latest
 
-      # 4. Set up Kubernetes (use base64 encoded kubeconfig)
+  deploy-k8:
+    needs: build-backend
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
       - name: Set up Kubernetes using kubeconfig
         run: |
           mkdir -p $HOME/.kube
@@ -38,7 +43,7 @@ jobs:
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      # 5. Deploy to Kubernetes
+      # 2. Deploy to Kubernetes
       - name: Deploy to Kubernetes (Minikube or DigitalOcean)
         run: |
           kubectl apply -f k8s/namespace.yaml
@@ -48,7 +53,7 @@ jobs:
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/cronjob-backup.yaml
 
-      # 6. Verify deployment
+      # 3. Verify deployment
       - name: Verify deployment
         run: |
           kubectl get pods
