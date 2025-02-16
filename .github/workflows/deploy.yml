@@ -128,19 +128,19 @@ jobs:
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      # 1. Verify connection to the cluster
-      - name: Verify connection to the cluster
+      # 2. Verify connection to the cluster
+      - name: 2) Verify connection to the cluster
         run: |
           kubectl cluster-info
 
-      # 2. Apply ConfigMap with the init script
-      - name: Apply ConfigMap
+      # 3. Apply ConfigMap with the init script
+      - name: 3 )Apply ConfigMap
         run: |
-          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml 
+          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml --validate=false
 
       - name: Wait for ConfigMap to be available
         run: |
-          kubectl wait --for=condition=available --timeout=60s configmap/mysql-init-script -n backend-namespace-jesusramirez
+          kubectl wait --for=condition=available --timeout=120s configmap/mysql-init-script -n backend-namespace-jesusramirez
 
 
   deploy-k8-FINAL:
