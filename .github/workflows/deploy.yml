@@ -133,15 +133,33 @@ jobs:
         run: |
           kubectl cluster-info
 
+      # # 3. Apply ConfigMap with the init script
+      # - name: 3 )Apply ConfigMap
+      #   run: |
+      #     kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml --validate=false
+
+      # - name: Wait for ConfigMap to be available
+      #   run: |
+      #     kubectl wait --for=condition=available --timeout=120s configmap/mysql-init-script -n backend-namespace-jesusramirez
+
       # 3. Apply ConfigMap with the init script
-      - name: 3 )Apply ConfigMap
+      - name: 3) Apply ConfigMap
         run: |
-          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml --validate=false
+          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
+          kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
 
-      - name: Wait for ConfigMap to be available
+      # 4. Wait for ConfigMap to be available (retry logic with sleep)
+      - name: 4) Wait for ConfigMap to be available
         run: |
-          kubectl wait --for=condition=available --timeout=120s configmap/mysql-init-script -n backend-namespace-jesusramirez
+          until kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez; do
+            echo "Waiting for ConfigMap to be available..."
+            sleep 10
+          done
 
+      # 5. Optionally, describe the ConfigMap to ensure it's correctly populated
+      - name: 5) Describe ConfigMap
+        run: |
+          kubectl describe configmap mysql-init-script -n backend-namespace-jesusramirez
 
   deploy-k8-FINAL:
     needs: data-Charged
