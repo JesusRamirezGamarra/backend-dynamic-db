@@ -33,6 +33,7 @@ jobs:
       # 4. Set up Kubernetes (use base64 encoded kubeconfig)
       - name: Set up Kubernetes using kubeconfig
         run: |
+          mkdir -p $HOME/.kube
           echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
