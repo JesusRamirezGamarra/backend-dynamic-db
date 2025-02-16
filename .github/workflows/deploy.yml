@@ -120,7 +120,7 @@ jobs:
       # 1. Apply ConfigMap with the init script
       - name: Apply ConfigMap
         run: |
-          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml
+          kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml --validate=false
 
   deploy-k8-FINAL:
     needs: data-Charged
@@ -134,11 +134,10 @@ jobs:
       # A. Deploy all Kubernetes resources in a single apply command
       - name: A) Deploy all Kubernetes resources
         run: |
-          kubectl apply -f k8s/deploy-sk8.yaml
+          kubectl apply -f k8s/deploy-sk8.yaml --validate=false
 
       # B. Verify deployment
       - name: B) Verify deployment
         run: |
           kubectl get pods -n backend-namespace-jesusramirez
           kubectl get svc -n backend-namespace-jesusramirez
-          
