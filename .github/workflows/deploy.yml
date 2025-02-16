@@ -48,14 +48,19 @@ jobs:
         env:
           CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
 
-      # 2. Crear el namespace si no existe
-      - name: 2) Ensure Namespace Exists
+      # 2. Verificar conexión al clúster
+      - name: 2) Verify connection to the cluster
+        run: |
+          kubectl cluster-info
+
+      # 3. Crear el namespace si no existe
+      - name: 3) Ensure Namespace Exists
         run: |
           kubectl create namespace backend-namespace-jesusramirez || echo "Namespace already exists"
     
 
-      # 3. Delete existing Kubernetes Secrets if they exist and create new ones
-      - name: 3) Create Kubernetes Secrets from GitHub Actions
+      # 4. Delete existing Kubernetes Secrets if they exist and create new ones
+      - name: 4) Create Kubernetes Secrets from GitHub Actions
         run: |
           # Eliminar el Secret existente de Docker si ya existe
           kubectl delete secret regcred -n backend-namespace-jesusramirez || echo "Secret regcred does not exist"
@@ -76,33 +81,31 @@ jobs:
             --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
             --namespace backend-namespace-jesusramirez
 
-      # 4. List files in the repository for debugging
-      - name: 4) List files in the repository
+      # 5. List files in the repository for debugging
+      - name: 5) List files in the repository
         run: |
           echo "Listing the files in the repository:"
           ls -al $GITHUB_WORKSPACE  # Listar todos los archivos en el repositorio
           echo "Listing the files in the k8s directory:"
           ls -al $GITHUB_WORKSPACE/k8s  # Listar los archivos en la carpeta k8s
 
-
-
-      # 5. List and describe ConfigMaps
-      - name: 5) List ConfigMaps
+      # 6. List and describe ConfigMaps
+      - name: 6.A) List ConfigMaps
         run: |
           kubectl get configmaps -n backend-namespace-jesusramirez
 
-      - name: 6) Describe ConfigMaps
+      - name: 6.B) Describe ConfigMaps
         run: |
           for cm in $(kubectl get configmaps -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
             kubectl describe configmap $cm -n backend-namespace-jesusramirez;
           done
 
       # 7. List and describe Secrets
-      - name: 7) List Secrets
+      - name: 7.A) List Secrets
         run: |
           kubectl get secrets -n backend-namespace-jesusramirez
 
-      - name: 8) Describe Secrets
+      - name: 7.B) Describe Secrets
         run: |
           for secret in $(kubectl get secrets -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
             kubectl describe secret $secret -n backend-namespace-jesusramirez;
