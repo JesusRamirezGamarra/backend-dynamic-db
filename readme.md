@@ -85,6 +85,8 @@ Inicializo Jenkin-- utilizare de password :
  ![alt text](image-32.png)
 
 
+
+
   # 2. Instalar Docker 
 
 Despues de conectarnos a nuestro Droplet de Digital ocen procedemoa  :
@@ -110,7 +112,6 @@ sudo systemctl status docker
 ```
 
 
-
   # 3. #Instalar Docker Compose
 
 Docker Compose es necesario para definir y ejecutar aplicaciones Docker multi-contenedor. Para instalar Docker Compose, ejecuta:
@@ -125,3 +126,14 @@ sudo chmod +x /usr/local/bin/docker-compose
 docker-compose --version
 
   ```
+
+ # 4. JOB test de  Pipeline para Probar SSH
+  Test exitoso despues de algunos ajustes sobre el codigo.
+
+generar SSH para coniguracion con Digital Ocean
+![alt text](image.png)
+
+![alt text](image-1.png)
+
+Se logro probar la comunicacion
+![alt text](image-2.png)
