@@ -125,12 +125,12 @@ COPY package*.json ./
 RUN apt-get update -y && apt-get upgrade -y
 
 # Instalar herramientas para respaldo y AWS CLI
-RUN apt-get update && apt-get install -y \
-    mysql-client \
-    # postgresql-client \
-    # mongodb-tools \
-    # aws-cli \
-    && apt-get clean
+# RUN apt-get update && apt-get install -y \
+#     mysql-client \
+#     # postgresql-client \
+#     # mongodb-tools \
+#     # aws-cli \
+#     && apt-get clean
 
 # Instalar las dependencias de Node.js
 RUN npm install
