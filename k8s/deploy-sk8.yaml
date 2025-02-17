@@ -234,17 +234,20 @@ spec:
                   valueFrom:
                     secretKeyRef:
                       name: backend-secrets-jesusramirez
-                      key: MYSQL_USER
+                      key: DATABASE_USER
                 - name: MYSQL_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: backend-secrets-jesusramirez
-                      key: MYSQL_PASSWORD
+                      key: DATABASE_PASSWORD
                 - name: MYSQL_HOST
                   valueFrom:
-                    secretKeyRef:
-                      name: backend-secrets-jesusramirez
-                      key: MYSQL_HOST
+                    configMapKeyRef:
+                      name: backend-config-jesusramirez
+                      key: DATABASE_HOST                     
+                    # secretKeyRef:
+                    #   name: backend-secrets-jesusramirez
+                    #   key: MYSQL_HOST
                 - name: MYSQL_PORT
                   value: "3306"  # Puerto de MySQL
               command: ["/usr/local/bin/backup-scripts/backup-script.sh"]
