@@ -83,3 +83,45 @@ Inicializo Jenkin-- utilizare de password :
  ![alt text](image-31.png)
 
  ![alt text](image-32.png)
+
+
+  # 2. Instalar Docker 
+
+Despues de conectarnos a nuestro Droplet de Digital ocen procedemoa  :
+```
+# Actualiza los repositorios
+sudo apt update
+
+# Instala dependencias
+sudo apt install apt-transport-https ca-certificates curl software-properties-common
+
+# Agrega la clave de Docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+# Agrega el repositorio de Docker
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# Instala Docker
+sudo apt update
+sudo apt install docker-ce
+
+# Verifica que Docker esté funcionando
+sudo systemctl status docker
+```
+
+
+
+  # 3. #Instalar Docker Compose
+
+Docker Compose es necesario para definir y ejecutar aplicaciones Docker multi-contenedor. Para instalar Docker Compose, ejecuta:
+  ```
+# Descarga la última versión de Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+# Dale permisos de ejecución
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Verifica la instalación
+docker-compose --version
+
+  ```
