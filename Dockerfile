@@ -4,8 +4,15 @@ FROM ubuntu:20.04
 # Establecer el directorio de trabajo en el contenedor
 WORKDIR /app
 
+# Actualizar los repositorios de apt-get y asegurarse de que el sistema esté limpio
+RUN apt-get update -y && apt-get upgrade -y
+
+# Diagnóstico: verificar la versión de apt-get y los repositorios disponibles
+RUN apt-get --version
+RUN apt-cache policy
+
 # Instalar dependencias necesarias para Node.js y herramientas de respaldo
-RUN apt-get update && apt-get install -y \
+RUN apt-get install -y \
     curl \
     gnupg \
     lsb-release \
