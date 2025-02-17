@@ -97,7 +97,7 @@ FROM amazonlinux:latest
 WORKDIR /usr/local/bin/backup-scripts
 
 # Instalar herramientas necesarias
-RUN yum install -y tar gzip shadow-utils
+RUN yum install -y tar gzip shadow-utils aws-cli
 
 # Agregar el repositorio oficial de MySQL 8.0 y desactivar GPG check temporalmente
 RUN yum install -y https://dev.mysql.com/get/mysql80-community-release-el9-1.noarch.rpm

@@ -215,7 +215,8 @@ spec:
           containers:
             - name: db-backup
               # image: jesusramirezgamarra/backend-dynamic-db:latest  # Imagen en Docker Hub
-              image: amazonlinux:latest
+              # image: amazonlinux:latest
+              image: jesusramirezgamarra/mysql-backup:latest
               envFrom:
                 - secretRef:
                     name: backend-secrets-jesusramirez              

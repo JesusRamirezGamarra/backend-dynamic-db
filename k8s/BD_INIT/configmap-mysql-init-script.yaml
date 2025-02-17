@@ -14,6 +14,7 @@ data:
         edad INT,
         sexo CHAR(1)
     );
+    INSERT INTO usuarios (nombre, apellido, edad, sexo) VALUES ('Lucio Jesus', 'Ramirez Gamarra', 40, 'M');
     INSERT INTO usuarios (nombre, apellido, edad, sexo) VALUES ('Maria', 'Rojas', 30, 'F');
     -- Agrega más sentencias SQL si es necesario
 
