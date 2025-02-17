@@ -1,3 +1,43 @@
+# Usar una imagen base de Ubuntu
+FROM ubuntu:20.04
+
+# Establecer el directorio de trabajo en el contenedor
+WORKDIR /app
+
+# Instalar dependencias necesarias para Node.js y herramientas de respaldo
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    lsb-release \
+    mysql-client \
+    postgresql-client \
+    mongodb-tools \
+    awscli \
+    nodejs \
+    npm \
+    && apt-get clean
+
+# Instalar las dependencias de Node.js
+COPY package*.json ./
+RUN npm install
+
+# Copiar el resto del código de la aplicación
+COPY . .
+
+# Copiar el script de backup al contenedor
+COPY k8s/backup/script/backup-script.sh /usr/local/bin/backup-scripts/backup-script.sh
+
+# Exponer el puerto en el que correrá la aplicación
+EXPOSE 3000
+
+# Definir la variable de entorno por defecto para la base de datos (puede ser sobrescrita)
+ENV MY_DATABASE_DRIVER=mysql
+
+# Comando para ejecutar la aplicación
+CMD ["node", "index.js"]
+
+
+
 # # # Usar Amazon Linux 2 como imagen base
 # # FROM amazonlinux:2
 
@@ -66,39 +106,39 @@
 
 
 
-FROM node:23
+# FROM node:23
 
-# Establecer el directorio de trabajo en el contenedor
-WORKDIR /app
+# # Establecer el directorio de trabajo en el contenedor
+# WORKDIR /app
 
-# Copiar los archivos del proyecto al contenedor
-COPY package*.json ./ 
+# # Copiar los archivos del proyecto al contenedor
+# COPY package*.json ./ 
 
-# Actualizar los repositorios de apt-get y asegurarse de que el sistema esté limpio
-RUN apt-get update -y && apt-get upgrade -y
+# # Actualizar los repositorios de apt-get y asegurarse de que el sistema esté limpio
+# RUN apt-get update -y && apt-get upgrade -y
 
-# Instalar herramientas para respaldo y AWS CLI
-RUN apt-get update && apt-get install -y \
-    mysql-client \
-    postgresql-client \
-    mongodb-tools \
-    aws-cli \
-    && apt-get clean
+# # Instalar herramientas para respaldo y AWS CLI
+# RUN apt-get update && apt-get install -y \
+#     mysql-client \
+#     postgresql-client \
+#     mongodb-tools \
+#     aws-cli \
+#     && apt-get clean
 
-# Instalar las dependencias de Node.js
-RUN npm install
+# # Instalar las dependencias de Node.js
+# RUN npm install
 
-# Copiar el resto del código de la aplicación
-COPY . .
+# # Copiar el resto del código de la aplicación
+# COPY . .
 
-# Copiar el script de backup al contenedor
-COPY k8s/backup/script/backup-script.sh /usr/local/bin/backup-scripts/backup-script.sh
+# # Copiar el script de backup al contenedor
+# COPY k8s/backup/script/backup-script.sh /usr/local/bin/backup-scripts/backup-script.sh
 
-# Exponer el puerto en el que correrá la aplicación
-EXPOSE 3000
+# # Exponer el puerto en el que correrá la aplicación
+# EXPOSE 3000
 
-# Definir la variable de entorno por defecto para la base de datos (puede ser sobrescrita)
-ENV MY_DATABASE_DRIVER=mysql
+# # Definir la variable de entorno por defecto para la base de datos (puede ser sobrescrita)
+# ENV MY_DATABASE_DRIVER=mysql
 
-# Comando para ejecutar la aplicación
-CMD ["node", "index.js"]
+# # Comando para ejecutar la aplicación
+# CMD ["node", "index.js"]
