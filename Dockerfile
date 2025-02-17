@@ -31,6 +31,9 @@ WORKDIR /app
 # Copiar los archivos del proyecto al contenedor
 COPY package*.json ./ 
 
+# Actualizar los repositorios de apt-get y asegurarse de que el sistema esté limpio
+RUN apt-get update -y && apt-get upgrade -y
+
 # Instalar herramientas para respaldo y AWS CLI
 RUN apt-get update && apt-get install -y \
     mysql-client \
