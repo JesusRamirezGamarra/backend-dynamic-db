@@ -221,6 +221,8 @@ spec:
                 - secretRef:
                     name: backend-secrets-jesusramirez              
               env:
+                - name: AWS_REGION
+                  value: "us-east-1"
                 - name: DB_TYPE
                   value: "MYSQL"  # Se define que solo se respaldará MySQL por ahora
                 - name: DB_NAME

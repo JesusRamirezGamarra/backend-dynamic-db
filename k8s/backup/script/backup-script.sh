@@ -5,6 +5,7 @@ TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 
 # Definir la variable del bucket AWS
 AWS_BUCKET="s3://bucket-codigo-backup/ramirez"
+export AWS_REGION="us-east-1"
 # DB_NAME=$1  # Nombre de la base de datos
 # DB_TYPE=$2  # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
 DB_NAME=${1:-"testdb"}  # Si no se pasa, usa "testdb"
@@ -63,7 +64,7 @@ if [ "$DB_TYPE" = "MYSQL" ]; then
     mysqldump --defaults-extra-file="$MYSQL_CNF" --databases "$DB_NAME" | gzip > "/tmp/${DB_NAME}_backup.sql.gz"
 
     # Subir a S3
-    aws s3 cp "/tmp/${DB_NAME}_backup.sql.gz" "${DB_PATH}/BD_backup.sql.gz"
+    aws s3 cp "/tmp/${DB_NAME}_backup.sql.gz" "${DB_PATH}/BD_backup.sql.gz" --region "$AWS_REGION" 
 
     # Eliminar credenciales temporales
     rm -f "$MYSQL_CNF"
@@ -82,7 +83,7 @@ elif [ "$DB_TYPE" = "POSTGRES" ]; then
     pg_dump -U "$POSTGRES_USER" -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" "$DB_NAME" | gzip > "/tmp/${DB_NAME}_backup.sql.gz"
 
     # Subir a S3
-    aws s3 cp "/tmp/${DB_NAME}_backup.sql.gz" "${DB_PATH}/BD_backup.sql.gz"
+    aws s3 cp "/tmp/${DB_NAME}_backup.sql.gz" "${DB_PATH}/BD_backup.sql.gz" --region "$AWS_REGION" 
 
 elif [ "$DB_TYPE" = "MONGODB" ]; then
     echo "📌 Respaldando MongoDB..."
@@ -95,9 +96,9 @@ elif [ "$DB_TYPE" = "MONGODB" ]; then
 
     # Exportar base de datos MongoDB
     mongodump --uri="mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${DB_NAME}" --out "/tmp/${DB_NAME}_backup"
-
+    
     # Subir a S3
-    aws s3 cp "/tmp/${DB_NAME}_backup" "${DB_PATH}/BD_backup" --recursive
+    aws s3 cp "/tmp/${DB_NAME}_backup" "${DB_PATH}/BD_backup" --recursive --region "$AWS_REGION" 
 
 else
     echo "❌ Error: Tipo de base de datos no soportado. Usa MYSQL, POSTGRES o MONGODB."

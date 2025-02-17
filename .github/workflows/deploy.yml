@@ -77,6 +77,7 @@ jobs:
           kubectl create secret generic backend-secrets-jesusramirez \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --from-literal=AWS_REGION=${{ secrets.AWS_REGION }} \
             --from-literal=DATABASE_USER=${{ secrets.DATABASE_USER }} \
             --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
             --namespace backend-namespace-jesusramirez
