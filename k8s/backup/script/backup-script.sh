@@ -116,12 +116,6 @@ echo "✅ Respaldo completado correctamente en ${DB_PATH}"
 
 
 
-
-
-
-
-
-
 # # # Obtener la fecha y hora actual en formato YYYYMMDDHHMMSS
 # # TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 
