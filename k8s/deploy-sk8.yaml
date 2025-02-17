@@ -214,7 +214,11 @@ spec:
         spec:
           containers:
             - name: db-backup
-              image: jesusramirezgamarra/backend-dynamic-db:latest  # Imagen en Docker Hub
+              # image: jesusramirezgamarra/backend-dynamic-db:latest  # Imagen en Docker Hub
+              image: amazonlinux:latest
+              envFrom:
+                - secretRef:
+                    name: backend-secrets-jesusramirez              
               env:
                 - name: DB_TYPE
                   value: "MYSQL"  # Se define que solo se respaldará MySQL por ahora

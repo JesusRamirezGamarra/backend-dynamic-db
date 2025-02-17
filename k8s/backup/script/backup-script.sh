@@ -1,4 +1,8 @@
-#!/bin/bash
+# # # # # # # # # # #!/bin/bash
+#!/bin/sh
+
+
+
 
 # Obtener la fecha y hora actual en formato YYYYMMDDHHMMSS
 TIMESTAMP=$(date +"%Y%m%d%H%M%S")
@@ -7,6 +11,14 @@ TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 AWS_BUCKET="s3://bucket-codigo-backup/ramirez"
 DB_NAME=$1  # Nombre de la base de datos (MYSQL/PostgreSQL/MongoDB)
 DB_TYPE=$2  # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
+
+echo "Instalando AWS CLI..."
+yum install -y aws-cli
+# Verifica si los comandos están instalados
+if [ "$DB_TYPE" == "MYSQL" ]; then
+    echo "Instalando MySQL Client..."
+    yum install -y mysql
+fi
 
 # Nombre de la subcarpeta para la base de datos
 DB_PATH="${AWS_BUCKET}/database/${TIMESTAMP}"
@@ -39,3 +51,15 @@ fi
 
 # Eliminar los archivos temporales
 rm -rf /tmp/${DB_NAME}_backup*
+
+
+
+
+
+
+
+
+
+
+
+
