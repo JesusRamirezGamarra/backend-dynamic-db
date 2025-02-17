@@ -5,15 +5,17 @@ TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 
 # Definir la variable del bucket AWS
 AWS_BUCKET="s3://bucket-codigo-backup/ramirez"
-DB_NAME=$1  # Nombre de la base de datos
-DB_TYPE=$2  # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
+# DB_NAME=$1  # Nombre de la base de datos
+# DB_TYPE=$2  # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
+DB_NAME=${1:-"testdb"}  # Si no se pasa, usa "testdb"
+DB_TYPE=${2:-"MYSQL"}    # Si no se pasa, usa
 
-# Validar que se pasen los parámetros correctos
-if [ -z "$DB_NAME" ] || [ -z "$DB_TYPE" ]; then
-    echo "❌ Error: Debes proporcionar el nombre de la base de datos y el tipo (MYSQL, POSTGRES, MONGODB)."
-    DB_NAME= "testdb" 
-    # exit 1
+# Validar que `DB_TYPE` solo contenga valores permitidos
+if [ "$DB_TYPE" != "MYSQL" ] && [ "$DB_TYPE" != "POSTGRES" ] && [ "$DB_TYPE" != "MONGODB" ]; then
+    echo "❌ Error: Tipo de base de datos no soportado ($DB_TYPE). Usa MYSQL, POSTGRES o MONGODB."
+    exit 1
 fi
+
 
 # Instalar AWS CLI si no está presente
 if ! command -v aws &> /dev/null; then
@@ -22,11 +24,21 @@ if ! command -v aws &> /dev/null; then
 fi
 
 # Nombre de la subcarpeta en S3
-DB_PATH="${AWS_BUCKET}/database/${TIMESTAMP}"
+DB_PATH="${AWS_BUCKET}/${DB_TYPE}/${TIMESTAMP}"
+echo "📌 Usando DB_NAME=${DB_NAME}, DB_TYPE=${DB_TYPE}"
+# Validar que se pasen los parámetros correctos
+if [ -z "$DB_NAME" ]; then
+    echo "❌ Error: Debes proporcionar el nombre de la base de datos (catalogo)."
+    # DB_NAME="testdb" 
+    echo  "📌 Tipo de base de datos no definido. Usando $DB_NAME por defecto."
+    # exit 1
+fi
 
 # Si no se definió DB_TYPE, usar la variable de entorno
 if [ -z "$DB_TYPE" ]; then
-    DB_TYPE=$MY_DATABASE_DRIVER
+    echo "❌ Error: Debes proporcionar el nombre de la base de datos y el tipo (MYSQL, POSTGRES, MONGODB)."
+    # DB_TYPE="MYSQL"
+    echo "📌 Tipo de base de datos no definido. Usando $DB_TYPE por defecto."
 fi
 
 # Configurar conexión y exportar la base de datos
