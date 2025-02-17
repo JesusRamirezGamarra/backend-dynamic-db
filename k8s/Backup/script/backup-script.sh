@@ -3,15 +3,18 @@
 # Obtener la fecha y hora actual en formato YYYYMMDDHHMMSS
 TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 
-# Definir la base de datos, el nombre del bucket y la ruta
+# Definir la variable del bucket AWS
 AWS_BUCKET="s3://bucket-codigo-backup/ramirez"
-DB_NAME=$1  # Nombre de la base de datos (MYSQL/PostgreSQL/MongoDB) también se usará para DB_TYPE
-
-# Asignar DB_TYPE igual a DB_NAME
-DB_TYPE=$DB_NAME
+DB_NAME=$1  # Nombre de la base de datos (MYSQL/PostgreSQL/MongoDB)
+DB_TYPE=$2  # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
 
 # Nombre de la subcarpeta para la base de datos
-DB_PATH="${AWS_BUCKET}/${DB_TYPE}/${TIMESTAMP}"
+DB_PATH="${AWS_BUCKET}/database/${TIMESTAMP}"
+
+# Si la variable MY_DATABASE_DRIVER no está definida, usar la base de datos MySQL por defecto
+if [ -z "$DB_TYPE" ]; then
+    DB_TYPE=$MY_DATABASE_DRIVER
+fi
 
 # Conectar y exportar la base de datos dependiendo del tipo
 if [ "$DB_TYPE" == "MYSQL" ]; then

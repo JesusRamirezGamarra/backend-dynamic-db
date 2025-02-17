@@ -1,3 +1,27 @@
+# # # # # Usar una imagen base oficial de Node.js
+# # # # FROM node:18
+
+# # # # # Establecer el directorio de trabajo en el contenedor
+# # # # WORKDIR /app
+
+# # # # # Copiar los archivos del proyecto al contenedor
+# # # # COPY package*.json ./
+
+# # # # # Instalar las dependencias
+# # # # RUN npm install
+
+# # # # # Copiar el resto del código de la aplicación
+# # # # COPY . .
+
+# # # # # Exponer el puerto en el que correrá la aplicación
+# # # # EXPOSE 3000
+
+# # # # # Definir la variable de entorno por defecto para la base de datos (puede ser sobrescrita)
+# # # # ENV MY_DATABASE_DRIVER=mysql
+
+# # # # # Comando para ejecutar la aplicación
+# # # # CMD ["node", "index.js"]
+
 # Usar una imagen base oficial de Node.js
 FROM node:18
 
@@ -5,13 +29,24 @@ FROM node:18
 WORKDIR /app
 
 # Copiar los archivos del proyecto al contenedor
-COPY package*.json ./
+COPY package*.json ./ 
 
-# Instalar las dependencias
+# Instalar las dependencias de Node.js
 RUN npm install
+
+# Instalar herramientas para respaldo y AWS CLI
+RUN apt-get update && apt-get install -y \
+    mysql-client \
+    postgresql-client \
+    mongodb-tools \
+    aws-cli \
+    && apt-get clean
 
 # Copiar el resto del código de la aplicación
 COPY . .
+
+# Copiar el script de backup al contenedor
+COPY k8s/backup/script/backup-script.sh /usr/local/bin/backup-scripts/backup-script.sh
 
 # Exponer el puerto en el que correrá la aplicación
 EXPOSE 3000
