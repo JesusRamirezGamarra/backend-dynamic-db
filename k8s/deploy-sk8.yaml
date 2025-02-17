@@ -13,8 +13,7 @@ type: Opaque
 data:
   DATABASE_USER: cm9vdA==  # "root" codificado en base64
   DATABASE_PASSWORD: MTIzNDU2  # "123456" codificado en base64
-  AWS_ACCESS_KEY_ID: QUtJQVhTUVZOM04zS0I2MldDVFk=  # Clave de acceso AWS codificada en base64
-  AWS_SECRET_ACCESS_KEY: emJyZ0JiWXcrQ3dDWG9IdDV3bnZOV1NkRVc3ajc3MnhETDBYcWIrbQ==  # Clave secreta AWS codificada en base64
+
 ---
 
 #ConfigMap :  backend-config-jesusramirez
