@@ -1,0 +1,332 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backend-namespace-jesusramirez
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets-jesusramirez
+  namespace: backend-namespace-jesusramirez
+type: Opaque
+data:
+  DATABASE_USER: cm9vdA==  # "root" codificado en base64
+  DATABASE_PASSWORD: MTIzNDU2  # "123456" codificado en base64
+  AWS_ACCESS_KEY_ID: QUtJQVhTUVZOM04zS0I2MldDVFk=  # Clave de acceso AWS codificada en base64
+  AWS_SECRET_ACCESS_KEY: emJyZ0JiWXcrQ3dDWG9IdDV3bnZOV1NkRVc3ajc3MnhETDBYcWIrbQ==  # Clave secreta AWS codificada en base64
+---
+
+#ConfigMap :  backend-config-jesusramirez
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config-jesusramirez
+  namespace: backend-namespace-jesusramirez
+data:
+  DATABASE_HOST: mysql-service
+  DATABASE_PORT: "3306"
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+---
+
+#Deployment :  mysql-deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  namespace: backend-namespace-jesusramirez
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:5.7
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets-jesusramirez
+                  key: DATABASE_PASSWORD
+            - name: MYSQL_DATABASE
+              value: testdb
+          volumeMounts:
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d  # Monta el script en el directorio correcto para MySQL              
+          ports:
+            - containerPort: 3306
+      volumes:
+        - name: init-script
+          configMap:
+            name: mysql-init-script  # Este es el ConfigMap que contiene el script SQL            
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: backend-namespace-jesusramirez
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+  clusterIP: None  # Esto crea un servicio sin balanceo de carga, lo que es apropiado para MySQL
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: backend-namespace-jesusramirez
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      # initContainers:
+      # - name: init-mysql
+      #   image: mysql:5.7  
+      #   env:
+      #     - name: MYSQL_ROOT_PASSWORD
+      #       valueFrom:
+      #         secretKeyRef:
+      #           name: backend-secrets-jesusramirez
+      #           key: DATABASE_PASSWORD
+      #     - name: MYSQL_DATABASE
+      #       value: testdb
+      #   volumeMounts:
+      #     - name: init-script
+      #       mountPath: /docker-entrypoint-initdb.d    
+      containers:
+      - name: backend-container
+        image: jesusramirezgamarra/backend-dynamic-db:latest
+        ports:
+        - containerPort: 3000
+        env:
+          # - name: DB_HOST
+          #   value: mysql-service         
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: backend-config-jesusramirez
+                key: DATABASE_HOST      
+          - name: DB_USER_NAME
+            valueFrom:
+              secretKeyRef:
+                name: backend-secrets-jesusramirez
+                key: DATABASE_USER
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: backend-secrets-jesusramirez
+                key: DATABASE_PASSWORD
+          - name: DB_NAME
+            value: testdb
+          - name: DB_PORT
+            value: "3306"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: backend-secrets-jesusramirez
+                key: AWS_ACCESS_KEY_ID
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: backend-secrets-jesusramirez
+                key: AWS_SECRET_ACCESS_KEY
+      imagePullSecrets:
+        - name: regcred   
+    # volumes:
+    #   - name: init-script
+    #     configMap:
+    #       name: mysql-init-script            
+      #   env:
+      #     - name: DB_HOST
+      #       valueFrom:
+      #         configMapKeyRef:
+      #           name: backend-config-jesusramirez
+      #           key: DATABASE_HOST
+      #     - name: DB_USER
+      #       valueFrom:
+      #         secretKeyRef:
+      #           name: backend-secrets-jesusramirez
+      #           key: DATABASE_USER
+      #     - name: DB_PASSWORD
+      #       valueFrom:
+      #         secretKeyRef:
+      #           name: backend-secrets-jesusramirez
+      #           key: DATABASE_PASSWORD
+      #     - name: DB_NAME
+      #       value: users_db
+      #     - name: AWS_ACCESS_KEY_ID
+      #       valueFrom:
+      #         secretKeyRef:
+      #           name: backend-secrets-jesusramirez
+      #           key: AWS_ACCESS_KEY_ID
+      #     - name: AWS_SECRET_ACCESS_KEY
+      #       valueFrom:
+      #         secretKeyRef:
+      #           name: backend-secrets-jesusramirez
+      #           key: AWS_SECRET_ACCESS_KEY
+      # imagePullSecrets:
+      #   - name: regcred  # Usamos el Secret regcred para la autenticación de Docker Hub
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: backend-namespace-jesusramirez
+spec:
+  type: LoadBalancer  # Para acceso externo (si es en la nube como AWS, GCP, etc.)
+  selector:
+    app: backend  # El servicio selecciona los pods etiquetados con "app=backend"
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 3000
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-backup-mysql
+  namespace: backend-namespace-jesusramirez
+spec:
+  schedule: "*/5 * * * *"  # Ejecutar cada 5 minutos
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: db-backup
+              image: jesusramirezgamarra/backend-dynamic-db-backup:latest  # Imagen en Docker Hub
+              env:
+                - name: DB_TYPE
+                  value: "MYSQL"  # Se define que solo se respaldará MySQL por ahora
+                - name: DB_NAME
+                  value: "testdb"  # Nombre de la base de datos (en este caso, "testdb")
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets-jesusramirez
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets-jesusramirez
+                      key: AWS_SECRET_ACCESS_KEY
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets-jesusramirez
+                      key: MYSQL_USER
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets-jesusramirez
+                      key: MYSQL_PASSWORD
+                - name: MYSQL_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets-jesusramirez
+                      key: MYSQL_HOST
+                - name: MYSQL_PORT
+                  value: "3306"  # Puerto de MySQL
+              command: ["/usr/local/bin/backup-scripts/backup-script.sh"]
+              args:
+                - "$(DB_NAME)"   # Base de datos (nombre) : testdb
+                - "$(DB_TYPE)"   # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
+          restartPolicy: OnFailure
+
+
+
+---
+# apiVersion: batch/v1
+# kind: CronJob
+# metadata:
+#   name: database-backup-jesusramirez
+#   namespace: backend-namespace-jesusramirez
+# spec:
+#   schedule: "*/3 * * * *"  # Cada 3 minutos
+#   jobTemplate:
+#     spec:
+#       template:
+#         spec:
+#           containers:
+#           - name: backup-jesusramirez
+#             image: custom/aws-mysqldump # Usamos una imagen personalizada que incluye aws-cli y mysqldump
+#             command:
+#             - /bin/sh
+#             - -c
+#             - |
+#               TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+#               BACKUP_DIR="/backup"
+#               BUCKET_NAME="bucket-codigo-backup"
+#               DB_NAME="testdb"
+#               DB_USER=$(echo $DB_USER | base64 --decode)
+#               DB_PASS=$(echo $DB_PASSWORD | base64 --decode)
+#               DB_HOST=$(echo $DB_HOST | base64 --decode)
+
+#               mkdir -p $BACKUP_DIR
+#               mysqldump -h $DB_HOST -u $DB_USER -p$DB_PASS $DB_NAME > $BACKUP_DIR/db_backup_$TIMESTAMP.sql
+
+#               aws s3 cp $BACKUP_DIR/db_backup_$TIMESTAMP.sql s3://$BUCKET_NAME/jesusramirez/database/$TIMESTAMP/
+              
+#             envFrom:
+#             - secretRef:
+#                 name: backend-secrets-jesusramirez
+#           restartPolicy: OnFailure
+---
+
+# apiVersion: batch/v1
+# kind: CronJob
+# metadata:
+#   name: database-backup-jesusramirez
+#   namespace: backend-namespace-jesusramirez
+# spec:
+#   schedule: "0 */3 * * *"  # Cada 3 horas
+#   jobTemplate:
+#     spec:
+#       template:
+#         spec:
+#           containers:
+#             - name: backup-jesusramirez
+#               image: custom/aws-mysqldump # Usamos una imagen personalizada que incluye aws-cli y mysqldump
+#               command:
+#                 - /bin/sh
+#                 - -c
+#                 - |
+#                   TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+#                   BACKUP_DIR="/backup"
+#                   BUCKET_NAME="bucket-codigo-backup"
+#                   DB_NAME="testdb"
+#                   DB_USER=$(echo $DB_USER | base64 --decode)
+#                   DB_PASS=$(echo $DB_PASSWORD | base64 --decode)
+
+#                   mkdir -p $BACKUP_DIR
+#                   mysqldump -h $DB_HOST -u $DB_USER -p$DB_PASS $DB_NAME > $BACKUP_DIR/db_backup_$TIMESTAMP.sql
+
+#                   aws s3 cp $BACKUP_DIR/db_backup_$TIMESTAMP.sql s3://$BUCKET_NAME/jesusramirez/database/$TIMESTAMP/
+
+#               envFrom:
+#                 - secretRef:
+#                     name: backend-secrets-jesusramirez
+#           restartPolicy: OnFailure
+
+# ---
