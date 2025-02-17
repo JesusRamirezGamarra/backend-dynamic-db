@@ -31,9 +31,6 @@ WORKDIR /app
 # Copiar los archivos del proyecto al contenedor
 COPY package*.json ./ 
 
-# Instalar las dependencias de Node.js
-RUN npm install
-
 # Instalar herramientas para respaldo y AWS CLI
 RUN apt-get update && apt-get install -y \
     mysql-client \
@@ -41,6 +38,9 @@ RUN apt-get update && apt-get install -y \
     mongodb-tools \
     aws-cli \
     && apt-get clean
+
+# Instalar las dependencias de Node.js
+RUN npm install
 
 # Copiar el resto del código de la aplicación
 COPY . .
