@@ -138,11 +138,15 @@ RUN npm install
 # Copiar el resto del código de la aplicación
 COPY . .
 
-# Copiar el script de backup al contenedor
+# Crear la carpeta destino dentro del contenedor
+RUN mkdir -p /usr/local/bin/backup-scripts
+
+# Copiar el script desde el directorio `k8s/scripts/`
 COPY k8s/backup/script/backup-script.sh /usr/local/bin/backup-scripts/backup-script.sh
 
-# 🔥 SOLUCIÓN: Dar permisos de ejecución al script
+# Dar permisos de ejecución al script
 RUN chmod +x /usr/local/bin/backup-scripts/backup-script.sh
+
 
 # Exponer el puerto en el que correrá la aplicación
 EXPOSE 3000
