@@ -1125,3 +1125,30 @@ systemctl status jenkins.service
 sudo apt update
 sudo apt install openjdk-17-jdk -y
 ```
+
+Ejecuto :
+```
+ wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian/jenkins.io-2023.key
+--2025-02-17 03:13:24--  https://pkg.jenkins.io/debian/jenkins.io-2023.key
+```
+
+Reinicio servicios
+```
+ sudo systemctl restart jenkins
+ ```
+
+verifico errores:
+```
+ journalctl -xeu jenkins.service --no-pager | tail -50
+ ```
+ ![alt text](image-26.png)
+
+Inicializo Jenkin-- utilizare de password :
+123123
+ ![alt text](image-27.png)
+
+ ![alt text](image-28.png)
+
+ ![alt text](image-29.png)
+
+ ![alt text](image-30.png)
