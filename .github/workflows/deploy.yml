@@ -30,6 +30,7 @@ jobs:
         run: |
           docker build -t jesusramirezgamarra/backend-dynamic-db:latest .
           docker push jesusramirezgamarra/backend-dynamic-db:latest
+
   deploy-k8-INIT:
     needs: build-backend
     runs-on: ubuntu-latest
@@ -51,6 +52,7 @@ jobs:
       - name: 2) Verify connection to the cluster
         run: |
           kubectl cluster-info
+
       # 3. Crear el namespace si no existe
       - name: 3) Ensure Namespace Exists
         run: |
@@ -71,12 +73,14 @@ jobs:
             --docker-password=${{ secrets.DOCKER_PASSWORD }} \
             --docker-email=${{ secrets.DOCKER_EMAIL }} \
             --namespace backend-namespace-jesusramirez
+
           kubectl create secret generic backend-secrets-jesusramirez \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             --from-literal=DATABASE_USER=${{ secrets.DATABASE_USER }} \
             --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
             --namespace backend-namespace-jesusramirez
+
       # 5. List files in the repository for debugging
       - name: 5) List files in the repository
         run: |
@@ -84,24 +88,29 @@ jobs:
           ls -al $GITHUB_WORKSPACE  # Listar todos los archivos en el repositorio
           echo "Listing the files in the k8s directory:"
           ls -al $GITHUB_WORKSPACE/k8s  # Listar los archivos en la carpeta k8s
+
       # 6. List and describe ConfigMaps
       - name: 6.A) List ConfigMaps
         run: |
           kubectl get configmaps -n backend-namespace-jesusramirez
+
       - name: 6.B) Describe ConfigMaps
         run: |
           for cm in $(kubectl get configmaps -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
             kubectl describe configmap $cm -n backend-namespace-jesusramirez;
           done
+
       # 7. List and describe Secrets
       - name: 7.A) List Secrets
         run: |
           kubectl get secrets -n backend-namespace-jesusramirez
+
       - name: 7.B) Describe Secrets
         run: |
           for secret in $(kubectl get secrets -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
             kubectl describe secret $secret -n backend-namespace-jesusramirez;
           done
+
   data-Charged:
     needs: deploy-k8-INIT
     runs-on: ubuntu-latest   
@@ -123,6 +132,7 @@ jobs:
       - name: 2) Verify connection to the cluster
         run: |
           kubectl cluster-info
+
       # # 3. Apply ConfigMap with the init script
       # - name: 3 )Apply ConfigMap
       #   run: |
@@ -137,6 +147,7 @@ jobs:
         run: |
           kubectl apply -f k8s/BD_INIT/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
           kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
+
       # 4. Wait for ConfigMap to be available (retry logic with sleep)
       - name: 4) Wait for ConfigMap to be available
         run: |
@@ -144,10 +155,12 @@ jobs:
             echo "Waiting for ConfigMap to be available..."
             sleep 10
           done
+
       # 5. Optionally, describe the ConfigMap to ensure it's correctly populated
       - name: 5) Describe ConfigMap
         run: |
           kubectl describe configmap mysql-init-script -n backend-namespace-jesusramirez
+
   deploy-k8-FINAL:
     needs: data-Charged
     runs-on: ubuntu-latest                        
@@ -169,10 +182,12 @@ jobs:
         run: |
           kubectl apply -f k8s/BD_INIT/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
           kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
+
       # A. Deploy all Kubernetes resources in a single apply command
       - name: A) Deploy all Kubernetes resources
         run: |
           kubectl apply -f k8s/deploy-sk8.yaml --validate=false
+
       # B. Verify deployment
       - name: B) Verify deployment
         run: |
