@@ -255,11 +255,12 @@ spec:
                     #   key: MYSQL_HOST
                 - name: MYSQL_PORT
                   value: "3306"  # Puerto de MySQL
-              # command: ["/usr/local/bin/backup-scripts/backup-script.sh"]
-              command: ["sh", "-c", "/usr/local/bin/backup-scripts/backup-script.sh"]              
-              args:
-                - "$(DB_NAME)"   # Base de datos (nombre) : testdb
-                - "$(DB_TYPE)"   # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
+              command: ["sh", "-c", "export DB_NAME=${DB_NAME}; export DB_TYPE=${DB_TYPE}; /usr/local/bin/backup-scripts/backup-script.sh"]
+              # command: ["/usr/local/bin/backup-scripts/backup-script.sh"]       
+              # args:
+              #   - "$(DB_NAME)"   # Base de datos (nombre) : testdb
+              #   - "$(DB_TYPE)"   # Tipo de base de datos (MYSQL, POSTGRES, MONGODB)
+              # command: ["sh", "-c", "/usr/local/bin/backup-scripts/backup-script.sh"]                  
           restartPolicy: OnFailure
 
 
