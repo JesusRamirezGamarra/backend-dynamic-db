@@ -1,0 +1,196 @@
+name: Deploy to Kubernetes
+
+on:
+  push:
+    branches:
+      - develop  # Esto se ejecutará cuando haya un push en la rama develop
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repository
+      - name: 1) Checkout the repository
+        uses: actions/checkout@v3
+
+      # 2. Set up Docker Buildx
+      - name: 2) Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # 3. Log in to Docker Hub
+      - name: 3) Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 4. Build and push Docker image
+      - name: 4) Build and push Docker image
+        run: |
+          docker build -t jesusramirezgamarra/backend-dynamic-db:latest .
+          docker push jesusramirezgamarra/backend-dynamic-db:latest
+
+  deploy-k8-INIT:
+    needs: build-backend
+    runs-on: ubuntu-latest
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3
+
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
+
+      # 2. Verificar conexión al clúster
+      - name: 2) Verify connection to the cluster
+        run: |
+          kubectl cluster-info
+
+      # 3. Crear el namespace si no existe
+      - name: 3) Ensure Namespace Exists
+        run: |
+          kubectl create namespace backend-namespace-jesusramirez || echo "Namespace already exists"
+    
+
+      # 4. Delete existing Kubernetes Secrets if they exist and create new ones
+      - name: 4) Create Kubernetes Secrets from GitHub Actions
+        run: |
+          # Eliminar el Secret existente de Docker si ya existe
+          kubectl delete secret regcred -n backend-namespace-jesusramirez || echo "Secret regcred does not exist"
+          kubectl delete secret backend-secrets-jesusramirez -n backend-namespace-jesusramirez || echo "Secret backend-secrets-jesusramirez does not exist"
+          
+          # Crear nuevos Secrets con las credenciales de GitHub Actions
+          kubectl create secret docker-registry regcred \
+            --docker-server=docker.io \
+            --docker-username=${{ secrets.DOCKER_USERNAME }} \
+            --docker-password=${{ secrets.DOCKER_PASSWORD }} \
+            --docker-email=${{ secrets.DOCKER_EMAIL }} \
+            --namespace backend-namespace-jesusramirez
+
+          kubectl create secret generic backend-secrets-jesusramirez \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --from-literal=AWS_REGION=${{ secrets.AWS_REGION }} \
+            --from-literal=DATABASE_USER=${{ secrets.DATABASE_USER }} \
+            --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
+            --namespace backend-namespace-jesusramirez
+
+      # 5. List files in the repository for debugging
+      - name: 5) List files in the repository
+        run: |
+          echo "Listing the files in the repository:"
+          ls -al $GITHUB_WORKSPACE  # Listar todos los archivos en el repositorio
+          echo "Listing the files in the k8s directory:"
+          ls -al $GITHUB_WORKSPACE/k8s  # Listar los archivos en la carpeta k8s
+
+      # 6. List and describe ConfigMaps
+      - name: 6.A) List ConfigMaps
+        run: |
+          kubectl get configmaps -n backend-namespace-jesusramirez
+
+      - name: 6.B) Describe ConfigMaps
+        run: |
+          for cm in $(kubectl get configmaps -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
+            kubectl describe configmap $cm -n backend-namespace-jesusramirez;
+          done
+
+      # 7. List and describe Secrets
+      - name: 7.A) List Secrets
+        run: |
+          kubectl get secrets -n backend-namespace-jesusramirez
+
+      - name: 7.B) Describe Secrets
+        run: |
+          for secret in $(kubectl get secrets -n backend-namespace-jesusramirez -o jsonpath="{.items[*].metadata.name}"); do
+            kubectl describe secret $secret -n backend-namespace-jesusramirez;
+          done
+
+  data-Charged:
+    needs: deploy-k8-INIT
+    runs-on: ubuntu-latest   
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3    
+
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
+
+      # 2. Verify connection to the cluster
+      - name: 2) Verify connection to the cluster
+        run: |
+          kubectl cluster-info
+
+      # # 3. Apply ConfigMap with the init script
+      # - name: 3 )Apply ConfigMap
+      #   run: |
+      #     kubectl apply -f k8s/MySQL/configmap-mysql-init-script.yaml --validate=false
+
+      # - name: Wait for ConfigMap to be available
+      #   run: |
+      #     kubectl wait --for=condition=available --timeout=120s configmap/mysql-init-script -n backend-namespace-jesusramirez
+
+      # 3. Apply ConfigMap with the init script
+      - name: 3) Apply ConfigMap
+        run: |
+          kubectl apply -f k8s/BD_INIT/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
+          kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
+
+      # 4. Wait for ConfigMap to be available (retry logic with sleep)
+      - name: 4) Wait for ConfigMap to be available
+        run: |
+          until kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez; do
+            echo "Waiting for ConfigMap to be available..."
+            sleep 10
+          done
+
+      # 5. Optionally, describe the ConfigMap to ensure it's correctly populated
+      - name: 5) Describe ConfigMap
+        run: |
+          kubectl describe configmap mysql-init-script -n backend-namespace-jesusramirez
+
+  deploy-k8-FINAL:
+    needs: data-Charged
+    runs-on: ubuntu-latest                        
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3
+
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
+
+      - name: Apply ConfigMap
+        run: |
+          kubectl apply -f k8s/BD_INIT/configmap-mysql-init-script.yaml -n backend-namespace-jesusramirez
+          kubectl get configmap mysql-init-script -n backend-namespace-jesusramirez
+
+      # A. Deploy all Kubernetes resources in a single apply command
+      - name: A) Deploy all Kubernetes resources
+        run: |
+          kubectl apply -f k8s/deploy-sk8.yaml --validate=false
+
+      # B. Verify deployment
+      - name: B) Verify deployment
+        run: |
+          kubectl get pods -n backend-namespace-jesusramirez
+          kubectl get svc -n backend-namespace-jesusramirez

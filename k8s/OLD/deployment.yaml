@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-api-jesusramirez
+  namespace: backend-namespace-jesusramirez
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-api-jesusramirez
+  template:
+    metadata:
+      labels:
+        app: backend-api-jesusramirez
+    spec:
+      containers:
+        - name: backend-api-jesusramirez
+          image: jesusramirezgamarra/backend-dynamic-db:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: backend-config-jesusramirez
+            - secretRef:
+                name: backend-secrets-jesusramirez
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service-jesusramirez
+  namespace: backend-namespace-jesusramirez
+spec:
+  selector:
+    app: backend-api-jesusramirez
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+

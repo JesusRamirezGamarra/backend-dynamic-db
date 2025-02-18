@@ -1,0 +1,207 @@
+name: Deploy to Kubernetes
+
+on:
+  push:
+    branches:
+      - develop  # Esto se ejecutará cuando haya un push en la rama develop
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        driver: [mysql, postgres, mongo]
+        recurso: [digital-ocean, k8]
+        include:
+          - driver: mysql
+            recurso: digital-ocean
+            docker_image: jesusramirezgamarra/backend-mysql:latest
+            configmap_file: k8s/BD_INIT/configmap-mysql-init-script.yaml
+          - driver: postgres
+            recurso: digital-ocean
+            docker_image: jesusramirezgamarra/backend-postgres:latest
+            configmap_file: k8s/BD_INIT/configmap-postgres-init-script.yaml
+          - driver: mongo
+            recurso: digital-ocean
+            docker_image: jesusramirezgamarra/backend-mongo:latest
+            configmap_file: k8s/BD_INIT/configmap-mongodb-init-script.yaml
+          - driver: mysql
+            recurso: k8
+            docker_image: jesusramirezgamarra/backend-mysql:latest
+            configmap_file: k8s/BD_INIT/configmap-mysql-init-script.yaml
+          - driver: postgres
+            recurso: k8
+            docker_image: jesusramirezgamarra/backend-postgres:latest
+            configmap_file: k8s/BD_INIT/configmap-postgres-init-script.yaml
+          - driver: mongo
+            recurso: k8
+            docker_image: jesusramirezgamarra/backend-mongo:latest
+            configmap_file: k8s/BD_INIT/configmap-mongodb-init-script.yaml
+
+    steps:
+      # 1. Checkout the repository
+      - name: 1) Checkout the repository
+        uses: actions/checkout@v3
+
+      # 2. Set up Docker Buildx
+      - name: 2) Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # 3. Log in to Docker Hub
+      - name: 3) Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 4. Build and push Docker image
+      - name: 4) Build and push Docker image
+        run: |
+          docker build -t ${{ matrix.docker_image }} .
+          docker push ${{ matrix.docker_image }}
+
+  deploy-k8-INIT:
+    needs: build-backend
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        recurso: [digital-ocean, k8]
+        driver: [mysql, postgres, mongo]
+        include:
+          - driver: mysql
+            recurso: digital-ocean
+            docker_image: jesusramirezgamarra/backend-mysql:latest
+            configmap_file: k8s/BD_INIT/configmap-mysql-init-script.yaml
+          - driver: postgres
+            recurso: digital-ocean
+            docker_image: jesusramirezgamarra/backend-postgres:latest
+            configmap_file: k8s/BD_INIT/configmap-postgres-init-script.yaml
+          - driver: mongo
+            recurso: digital-ocean
+            docker_image: jesusramirezgamarra/backend-mongo:latest
+            configmap_file: k8s/BD_INIT/configmap-mongodb-init-script.yaml
+          - driver: mysql
+            recurso: k8
+            docker_image: jesusramirezgamarra/backend-mysql:latest
+            configmap_file: k8s/BD_INIT/configmap-mysql-init-script.yaml
+          - driver: postgres
+            recurso: k8
+            docker_image: jesusramirezgamarra/backend-postgres:latest
+            configmap_file: k8s/BD_INIT/configmap-postgres-init-script.yaml
+          - driver: mongo
+            recurso: k8
+            docker_image: jesusramirezgamarra/backend-mongo:latest
+            configmap_file: k8s/BD_INIT/configmap-mongodb-init-script.yaml
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3
+
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
+
+      # 2. Verificar conexión al clúster
+      - name: 2) Verify connection to the cluster
+        run: |
+          kubectl cluster-info
+
+      # 3. Crear el namespace si no existe
+      - name: 3) Ensure Namespace Exists
+        run: |
+          kubectl create namespace backend-namespace-jesusramirez || echo "Namespace already exists"
+    
+      # 4. Delete existing Kubernetes Secrets if they exist and create new ones
+      - name: 4) Create Kubernetes Secrets from GitHub Actions
+        run: |
+          # Eliminar el Secret existente de Docker si ya existe
+          kubectl delete secret regcred -n backend-namespace-jesusramirez || echo "Secret regcred does not exist"
+          kubectl delete secret backend-secrets-jesusramirez -n backend-namespace-jesusramirez || echo "Secret backend-secrets-jesusramirez does not exist"
+          
+          # Crear nuevos Secrets con las credenciales de GitHub Actions
+          kubectl create secret docker-registry regcred \
+            --docker-server=docker.io \
+            --docker-username=${{ secrets.DOCKER_USERNAME }} \
+            --docker-password=${{ secrets.DOCKER_PASSWORD }} \
+            --docker-email=${{ secrets.DOCKER_EMAIL }} \
+            --namespace backend-namespace-jesusramirez
+
+          kubectl create secret generic backend-secrets-jesusramirez \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --from-literal=AWS_REGION=${{ secrets.AWS_REGION }} \
+            --from-literal=DATABASE_USER=${{ secrets.DATABASE_USER }} \
+            --from-literal=DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} \
+            --namespace backend-namespace-jesusramirez
+
+  data-Charged:
+    needs: deploy-k8-INIT
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        recurso: [digital-ocean, k8]
+        driver: [mysql, postgres, mongo]
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3
+
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}" | base64 -d > $HOME/.kube/config
+        env:
+          CLUSTER_KUBE_CONFIG_K8: ${{ secrets.CLUSTER_KUBE_CONFIG_K8 }}
+
+      # 2. Verify connection to the cluster
+      - name: 2) Verify connection to the cluster
+        run: |
+          kubectl cluster-info
+
+      # 3. Apply ConfigMap with the init script
+      - name: 3) Apply ConfigMap
+        run: |
+          kubectl apply -f ${{ matrix.configmap_file }} -n backend-namespace-jesusramirez
+          kubectl get configmap -n backend-namespace-jesusramirez
+
+      # 4. Wait for ConfigMap to be available (retry logic with sleep)
+      - name: 4) Wait for ConfigMap to be available
+        run: |
+          until kubectl get configmap -n backend-namespace-jesusramirez; do
+            echo "Waiting for ConfigMap to be available..."
+            sleep 10
+          done
+
+      # 5. Optionally, describe the ConfigMap to ensure it's correctly populated
+      - name: 5) Describe ConfigMap
+        run: |
+          kubectl describe configmap -n backend-namespace-jesusramirez
+
+  deploy-k8-FINAL:
+    needs: data-Charged
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        recurso: [digital-ocean, k8]
+        driver: [mysql, postgres, mongo]
+
+    steps:
+      # 0. Checkout the repository again for the deploy job
+      - name: 0) Checkout the repository
+        uses: actions/checkout@v3
+
+      # 1. Set up Kubernetes (use base64 encoded kubeconfig)
+      - name: 1) Set up Kubernetes using kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
