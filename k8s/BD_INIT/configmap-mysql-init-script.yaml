@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-script
+  namespace: backend-namespace-jesusramirez
+data:
+  init-script.sql: |
+    -- mysql_data.sql: |
+    -- Tu script SQL aquí
+    CREATE TABLE IF NOT EXISTS usuarios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(50),
+        apellido VARCHAR(50),
+        edad INT,
+        sexo CHAR(1)
+    );
+    INSERT INTO usuarios (nombre, apellido, edad, sexo) VALUES ('Lucio Jesus', 'Ramirez Gamarra', 40, 'M');
+    INSERT INTO usuarios (nombre, apellido, edad, sexo) VALUES ('Maria', 'Rojas', 30, 'F');
+    -- Agrega más sentencias SQL si es necesario
+
+
+

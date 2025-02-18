@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins-server
+    restart: always
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    environment:
+      - JENKINS_OPTS="--prefix=/jenkins"
+    networks:
+      - backend-network
+
+  backend-api:
+    image: jesusramirezgamarra/backend-api:latest
+    container_name: backend-api
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./código/apellido-alumno:/usr/src/app
+    depends_on:
+      - jenkins
+    networks:
+      - backend-network
+
+  backup-service:
+    image: jesusramirezgamarra/backup-image:latest
+    container_name: backup-service
+    restart: always
+    volumes:
+      - ./backup-data:/backup
+    environment:
+      - AWS_BUCKET_NAME=bucket-codigo-backup
+      - AWS_BACKUP_PATH=apellido-alumno/database-jenkins/
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+    driver: local
+  backup-data:
+    driver: local

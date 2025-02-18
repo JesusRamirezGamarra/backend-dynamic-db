@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service-jesusramirez
+  namespace: backend-namespace-jesusramirez
+spec:
+  selector:
+    app: backend-api-jesusramirez
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
