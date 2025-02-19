@@ -137,3 +137,179 @@ generar SSH para coniguracion con Digital Ocean
 
 Se logro probar la comunicacion
 ![alt text](image-2.png)
+
+
+
+# TEST - Forna 2 // Otra alternativa con imagen 
+
+# 1. Configurar el Servidor Digital Ocean (Droplet)
+
+
+
+```
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y docker.io docker-compose
+sudo usermod -aG docker $USER
+newgrp docker
+
+```
+
+![alt text](image-3.png)
+
+Crear el Dockerfile para Jenkins
+Se modificará el Dockerfile para incluir kubectl y AWS CLI.
+
+
+```
+FROM jenkins/jenkins:lts-jdk17
+
+USER root
+
+# Instalar Docker dentro del contenedor
+RUN apt update && apt install -y docker.io
+
+# Instalar kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && chmod +x kubectl \
+    && mv kubectl /usr/local/bin/
+
+# Instalar AWS CLI
+RUN apt install -y unzip && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install
+
+# Agregar jenkins al grupo docker
+RUN usermod -aG docker jenkins
+
+USER jenkins
+```
+
+ Crear el docker-compose.yml
+ Este archivo definirá el servicio de Jenkins con volúmenes y conexión a Docker.
+
+```
+version: '3.8'
+services:
+  jenkins:
+    build: .
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+volumes:
+  jenkins_home:
+```
+
+Configurar Conexión de Jenkins con Kubernetes En Jenkins Instalar plugins:
+
+```
+Kubernetes CLI
+Docker Pipeline
+Pipeline: AWS Steps (para usar AWS CLI)
+
+```
+Configurar credenciales en Jenkins:
+
+```
+Agregar las credenciales de Kubernetes (archivo kubeconfig.yaml)
+Agregar credenciales de AWS para S3 (AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY)
+
+```
+
+Pipeline en Jenkins ( todo en uno )
+```
+pipeline {
+    agent any
+    environment {
+        KUBECONFIG = credentials('k8s-config')
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id-s3')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key-s3')
+    }
+    stages {
+        stage('Probar conexión') {
+            steps {
+                sh 'kubectl get pods'
+            }
+        }
+        stage('Configurar credenciales AWS') {
+            steps {
+                sh '''
+                mkdir -p ~/.aws
+                echo "[default]" > ~/.aws/credentials
+                echo "aws_access_key_id=$AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
+                echo "aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
+                chmod 600 ~/.aws/credentials
+                '''
+            }
+        }
+        stage('Generar Backup') {
+            steps {
+                sh '''
+                TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+                BACKUP_FILE="jenkins_backup_$TIMESTAMP.tar.gz"
+                tar -czvf $BACKUP_FILE /var/jenkins_home
+                echo "Backup generado: $BACKUP_FILE"
+                echo "BACKUP_FILE=$BACKUP_FILE" >> $WORKSPACE/env_vars
+                '''
+            }
+        }
+        stage('Subir backup a S3') {
+            steps {
+                sh '''
+                source $WORKSPACE/env_vars
+                aws s3 cp $BACKUP_FILE s3://bucket-codigo-backup/ramirez/MYSQL-jenkins/$TIMESTAMP/
+                '''
+            }
+        }
+    }
+}
+
+```
+Escenario para utilizar una imagen para el backup
+Configurar Respaldo Automático a AWS S3 Se creará un contenedor que haga el respaldo del volumen jenkins_home y lo suba a S3 cada 3 horas.
+
+dockerfile
+```
+FROM amazonlinux:latest
+
+RUN yum install -y aws-cli tar gzip
+
+CMD ["/bin/bash", "-c", "while true; do sleep 10800; /backup.sh; done"]
+```
+Crear el script de backup Crear un archivo backup.sh:
+```
+#!/bin/bash
+TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+BACKUP_DIR="/backup"
+BACKUP_FILE="$BACKUP_DIR/jenkins_backup_$TIMESTAMP.tar.gz"
+
+# Crear el respaldo
+mkdir -p $BACKUP_DIR
+tar -czvf $BACKUP_FILE /var/jenkins_home
+
+# Subir a S3
+aws s3 cp $BACKUP_FILE s3://bucket-codigo-backup/ramirez/MYSQL-jenkins/$TIMESTAMP/
+```
+Crear el docker-compose.yml para el backup
+```
+version: '3.8'
+services:
+  backup:
+    build: .
+    container_name: backup
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    restart: unless-stopped
+volumes:
+  jenkins_home:
+```
+![alt text](image-5.png)
+![alt text](image-4.png)
