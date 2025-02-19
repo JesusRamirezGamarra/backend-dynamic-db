@@ -1,42 +1,42 @@
-// pipeline {
-//     agent any
-//     stages {
-//         stage('Test Kubernetes Connection') {
-//             steps {
-//                 script {
-//                     sh 'kubectl get nodes'
-//                 }
-//             }
-//         }
-//     }
-// }
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'jenkins/jenkins:lts-jdk17'
+            args '--user root'
+        }
+    }
     environment {
-        AWS_BUCKET = 'bucket-codigo-backup'
-        BACKUP_PATH = 'codigo/jesusramirez/database-jenkins/'
+        KUBECONFIG = credentials('k8s-config')
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
     }
     stages {
         stage('Clonar Repositorio') {
             steps {
-                git branch: 'jenkins', 
-                    credentialsId: 'github-token', 
-                    url: 'https://github.com/JesusRamirezGamarra/backend-dynamic-db.git'
+                git 'https://github.com/JesusRamirezGamarra/backend-dynamic-db.git'
             }
         }
-        stage('Detener Servicios') {
+        stage('Construir Imagen Docker') {
             steps {
-                sh 'docker-compose down'
+                sh 'docker build -t backend-api:latest .'
             }
         }
-        stage('Actualizar Código') {
+        stage('Publicar Imagen en Docker Hub') {
             steps {
-                sh 'docker-compose pull'
+                //sh 'docker tag backend-api:latest jesusramirezgamarra/backend-api:latest'
+                //sh 'docker push jesusramirezgamarra/backend-api:latest'
+                //sh 'docker push jesusramirezgamarra/mysql-backup"
             }
         }
-        stage('Levantar Servicios') {
+        stage('Desplegar en Kubernetes') {
             steps {
-                sh 'docker-compose up -d'
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl apply -f k8s/service.yaml'
+            }
+        }
+        stage('Verificar Despliegue') {
+            steps {
+                sh 'kubectl get pods'
             }
         }
     }

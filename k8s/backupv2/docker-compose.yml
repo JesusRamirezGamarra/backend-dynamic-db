@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  backup:
+    build: .
+    container_name: backup
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    restart: unless-stopped
+volumes:
+  jenkins_home:
